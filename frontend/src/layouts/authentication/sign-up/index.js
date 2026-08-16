@@ -37,11 +37,14 @@ function Cover() {
     event.preventDefault();
 
     try {
-      const response = await api.post("https://ai-email-agent-backend.fastapicloud.dev/auth/register", {
-        username,
-        email,
-        password,
-      });
+      const response = await api.post(
+        "https://ai-email-agent-backend.fastapicloud.dev/auth/register",
+        {
+          username,
+          email,
+          password,
+        }
+      );
 
       if (response.data.message) {
         navigate("/authentication/sign-in");

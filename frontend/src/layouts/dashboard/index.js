@@ -159,7 +159,10 @@ function Dashboard() {
               variant="contained"
               color="success"
               onClick={() =>
-                downloadFile("https://ai-email-agent-backend.fastapicloud.dev/export/emails/excel", "emails.xlsx")
+                downloadFile(
+                  "https://ai-email-agent-backend.fastapicloud.dev/export/emails/excel",
+                  "emails.xlsx"
+                )
               }
             >
               📄 Export Excel
@@ -169,7 +172,12 @@ function Dashboard() {
               variant="contained"
               color="info"
               sx={{ ml: 2 }}
-              onClick={() => downloadFile("https://ai-email-agent-backend.fastapicloud.dev/export/emails/pdf", "emails.pdf")}
+              onClick={() =>
+                downloadFile(
+                  "https://ai-email-agent-backend.fastapicloud.dev/export/emails/pdf",
+                  "emails.pdf"
+                )
+              }
             >
               📑 Export PDF
             </Button>
