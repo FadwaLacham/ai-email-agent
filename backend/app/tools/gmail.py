@@ -1,4 +1,5 @@
 import os
+import json
 import base64
 import re
 
@@ -12,65 +13,137 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 
-# Permission nécessaire pour lire + modifier les emails
+# ============================================================
+# Gmail Permissions
+# ============================================================
+
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
-    "https://www.googleapis.com/auth/gmail.send"
+    "https://www.googleapis.com/auth/gmail.send",
 ]
 
 
-# =========================
+# ============================================================
 # Gmail Authentication
-# =========================
+# ============================================================
 
 def authenticate_gmail():
 
-    print("1 - Starting Gmail authentication")
+    print("🔐 Starting Gmail authentication")
 
     creds = None
 
+    # ========================================================
+    # PRODUCTION
+    # Read token from environment variable
+    # ========================================================
 
-    if os.path.exists("token.json"):
+    token_json = os.getenv("GMAIL_TOKEN_JSON")
 
-        print("2 - Existing token found")
+    if token_json:
+
+        print("☁️ Loading Gmail token from environment")
+
+        try:
+
+            token_data = json.loads(token_json)
+
+            creds = Credentials.from_authorized_user_info(
+                token_data,
+                SCOPES
+            )
+
+            print("✅ Gmail token loaded from environment")
+
+        except Exception as e:
+
+            print(
+                "❌ Error loading GMAIL_TOKEN_JSON:",
+                e
+            )
+
+            raise
+
+    # ========================================================
+    # LOCAL
+    # Read token.json
+    # ========================================================
+
+    elif os.path.exists("token.json"):
+
+        print("💻 Existing token.json found")
 
         creds = Credentials.from_authorized_user_file(
             "token.json",
             SCOPES
         )
 
+    # ========================================================
+    # Refresh token
+    # ========================================================
 
-    if not creds or not creds.valid:
+    if creds and creds.expired and creds.refresh_token:
 
-        print("3 - Need authentication")
+        print("🔄 Refreshing Gmail token")
 
-
-        if creds and creds.expired and creds.refresh_token:
-
-            print("4 - Refreshing token")
+        try:
 
             creds.refresh(Request())
 
+            print("✅ Gmail token refreshed")
 
-        else:
+        except Exception as e:
 
-            print("5 - Opening Google login")
-
-
-            flow = InstalledAppFlow.from_client_secrets_file(
-                "credentials.json",
-                SCOPES
+            print(
+                "❌ Error refreshing Gmail token:",
+                e
             )
 
+            raise
 
-            creds = flow.run_local_server(
-                port=0
+    # ========================================================
+    # Invalid credentials
+    # ========================================================
+
+    if not creds or not creds.valid:
+
+        print("⚠️ Gmail authentication required")
+
+        # ----------------------------------------------------
+        # Production
+        # ----------------------------------------------------
+
+        if os.getenv("GMAIL_TOKEN_JSON"):
+
+            raise RuntimeError(
+                "Gmail token is invalid or expired. "
+                "Please update GMAIL_TOKEN_JSON."
             )
 
+        # ----------------------------------------------------
+        # Local development
+        # ----------------------------------------------------
 
-            print("6 - Google authentication finished")
+        if not os.path.exists("credentials.json"):
 
+            raise FileNotFoundError(
+                "credentials.json not found."
+            )
 
+        print("🌐 Opening Google login")
+
+        flow = InstalledAppFlow.from_client_secrets_file(
+            "credentials.json",
+            SCOPES
+        )
+
+        creds = flow.run_local_server(
+            port=0
+        )
+
+        print("✅ Google authentication finished")
+
+        # Save token locally
 
         with open(
             "token.json",
@@ -81,10 +154,11 @@ def authenticate_gmail():
                 creds.to_json()
             )
 
+        print("💾 token.json created")
 
-        print("7 - token.json created")
-
-
+    # ========================================================
+    # Build Gmail API service
+    # ========================================================
 
     service = build(
         "gmail",
@@ -92,19 +166,14 @@ def authenticate_gmail():
         credentials=creds
     )
 
-
-    print("8 - Gmail service created")
-
+    print("✅ Gmail service created")
 
     return service
 
 
-
-
-
-# =========================
+# ============================================================
 # Cleaning
-# =========================
+# ============================================================
 
 def clean_body(text):
 
@@ -114,22 +183,18 @@ def clean_body(text):
     - Remove extra spaces
     """
 
-
     if not text:
 
         return ""
-
 
     soup = BeautifulSoup(
         text,
         "html.parser"
     )
 
-
     text = soup.get_text(
         separator=" "
     )
-
 
     text = re.sub(
         r"\s+",
@@ -137,67 +202,69 @@ def clean_body(text):
         text
     )
 
-
     return text.strip()
 
 
-
-
-
-# =========================
-# Extract Body
-# =========================
+# ============================================================
+# Extract Email Body
+# ============================================================
 
 def extract_body(payload):
 
     """
-    Extract readable email body
+    Extract readable email body.
+    Supports simple and multipart emails.
     """
-
 
     body = ""
 
-
+    # ========================================================
     # Simple email
+    # ========================================================
 
-    if payload.get("body", {}).get("data"):
+    if payload.get(
+        "body",
+        {}
+    ).get("data"):
 
         body = payload["body"]["data"]
 
-
-
+    # ========================================================
     # Multipart email
+    # ========================================================
 
     elif "parts" in payload:
 
-
         for part in payload["parts"]:
-
 
             mime_type = part.get(
                 "mimeType"
             )
 
+            part_body = part.get(
+                "body",
+                {}
+            )
 
             if mime_type == "text/plain":
 
-                body = part["body"].get(
+                body = part_body.get(
                     "data",
                     ""
                 )
 
                 break
 
-
-
             elif mime_type == "text/html":
 
-                body = part["body"].get(
+                body = part_body.get(
                     "data",
                     ""
                 )
 
-
+    # ========================================================
+    # Decode
+    # ========================================================
 
     if body:
 
@@ -210,39 +277,32 @@ def extract_body(payload):
                 errors="ignore"
             )
 
-
             return clean_body(
                 decoded
             )
 
-
         except Exception as e:
 
             print(
-                "Body decoding error:",
+                "❌ Body decoding error:",
                 e
             )
-
 
     return ""
 
 
-
-
-
-# =========================
+# ============================================================
 # Get Unread Emails
-# =========================
+# ============================================================
 
 def get_emails(
-        service,
-        max_results=10
+    service,
+    max_results=10
 ):
 
     """
-    Retrieve only unread emails from Gmail
+    Retrieve unread emails from Gmail.
     """
-
 
     results = service.users().messages().list(
 
@@ -254,47 +314,48 @@ def get_emails(
 
     ).execute()
 
-
-
     messages = results.get(
         "messages",
         []
     )
 
-
-
     emails = []
-
-
 
     print(
         f"📩 {len(messages)} unread emails found"
     )
 
-
+    # ========================================================
+    # Process emails
+    # ========================================================
 
     for message in messages:
 
+        message_id = message["id"]
 
         msg = service.users().messages().get(
 
             userId="me",
 
-            id=message["id"],
+            id=message_id,
 
             format="full"
 
         ).execute()
 
+        payload = msg.get(
+            "payload",
+            {}
+        )
 
-
-        headers = msg["payload"]["headers"]
-
-
+        headers = payload.get(
+            "headers",
+            []
+        )
 
         email_data = {
 
-            "message_id": message["id"],
+            "message_id": message_id,
 
             "sender": "",
 
@@ -306,182 +367,139 @@ def get_emails(
 
         }
 
-
-
+        # ====================================================
+        # Extract headers
+        # ====================================================
 
         for header in headers:
 
+            name = header.get(
+                "name",
+                ""
+            ).lower()
 
-            name = header["name"].lower()
-
-
+            value = header.get(
+                "value",
+                ""
+            )
 
             if name == "from":
 
-                email_data["sender"] = header["value"]
-
-
+                email_data["sender"] = value
 
             elif name == "subject":
 
-                email_data["subject"] = header["value"]
-
-
+                email_data["subject"] = value
 
             elif name == "date":
 
-                email_data["date"] = header["value"]
+                email_data["date"] = value
 
-
-
-
+        # ====================================================
+        # Extract body
+        # ====================================================
 
         email_data["body"] = extract_body(
-
-            msg["payload"]
-
+            payload
         )
-
-
 
         emails.append(
             email_data
         )
 
-
-
     return emails
 
 
+# ============================================================
+# Mark Email as Read
+# ============================================================
 
-
-
-# =========================
-# Mark email as read
-# =========================
-
-def mark_as_read(service, message_id):
+def mark_as_read(
+    service,
+    message_id
+):
 
     response = service.users().messages().modify(
-        userId="me",
-        id=message_id,
-        body={
-            "removeLabelIds": ["UNREAD"]
-        }
-    ).execute()
-
-    print("📖 Gmail response:", response)
-
-# =========================
-# Gmail Actions
-# =========================
-
-
-def archive_email(service, message_id):
-
-    service.users().messages().modify(
 
         userId="me",
 
         id=message_id,
 
         body={
-            "removeLabelIds": ["INBOX"]
+            "removeLabelIds": [
+                "UNREAD"
+            ]
         }
 
     ).execute()
-
-
-    print("📂 Email archived")
-
-
-
-
-
-def add_review_label(service, message_id):
-
-
-    # Créer le label si nécessaire
-    labels = service.users().labels().list(
-        userId="me"
-    ).execute()
-
-
-    label_id = None
-
-
-    for label in labels.get("labels", []):
-
-        if label["name"] == "AI_REVIEW":
-
-            label_id = label["id"]
-
-
-
-    if not label_id:
-
-
-        new_label = service.users().labels().create(
-
-            userId="me",
-
-            body={
-                "name": "AI_REVIEW"
-            }
-
-        ).execute()
-
-
-        label_id = new_label["id"]
-
-
-
-    service.users().messages().modify(
-
-        userId="me",
-
-        id=message_id,
-
-        body={
-            "addLabelIds":[label_id]
-        }
-
-    ).execute()
-
-
-
-    print("📌 Email marked for review")
-
-
-
-
-
-def send_notification(email):
 
     print(
-        "🔔 Notification:",
-        email["subject"]
+        "📖 Gmail response:",
+        response
     )
 
-def create_label(service, label_name):
 
-    labels = service.users().labels().list(
-        userId="me"
+# ============================================================
+# Archive Email
+# ============================================================
+
+def archive_email(
+    service,
+    message_id
+):
+
+    service.users().messages().modify(
+
+        userId="me",
+
+        id=message_id,
+
+        body={
+            "removeLabelIds": [
+                "INBOX"
+            ]
+        }
+
     ).execute()
 
+    print(
+        "📂 Email archived"
+    )
+
+
+# ============================================================
+# Create Gmail Label
+# ============================================================
+
+def create_label(
+    service,
+    label_name
+):
+
+    labels = service.users().labels().list(
+
+        userId="me"
+
+    ).execute()
 
     existing_labels = labels.get(
         "labels",
         []
     )
 
+    # ========================================================
+    # Check existing label
+    # ========================================================
 
     for label in existing_labels:
 
         if label["name"] == label_name:
+
             return label["id"]
 
-
+    # ========================================================
+    # Create new label
+    # ========================================================
 
     label = service.users().labels().create(
 
@@ -493,20 +511,24 @@ def create_label(service, label_name):
 
     ).execute()
 
-
     return label["id"]
 
 
+# ============================================================
+# Add Label
+# ============================================================
 
-
-def add_label(service, message_id, label_name):
+def add_label(
+    service,
+    message_id,
+    label_name
+):
 
     label_id = create_label(
         service,
         label_name
     )
 
-
     service.users().messages().modify(
 
         userId="me",
@@ -514,31 +536,48 @@ def add_label(service, message_id, label_name):
         id=message_id,
 
         body={
-
             "addLabelIds": [
                 label_id
             ]
-
         }
 
     ).execute()
 
+    print(
+        f"🏷️ Label '{label_name}' added"
+    )
 
 
-def mark_as_read(service, message_id):
+# ============================================================
+# AI Review Label
+# ============================================================
 
-    service.users().messages().modify(
+def add_review_label(
+    service,
+    message_id
+):
 
-        userId="me",
+    add_label(
+        service,
+        message_id,
+        "AI_REVIEW"
+    )
 
-        id=message_id,
+    print(
+        "📌 Email marked for review"
+    )
 
-        body={
 
-            "removeLabelIds": [
-                "UNREAD"
-            ]
+# ============================================================
+# Send Notification
+# ============================================================
 
-        }
+def send_notification(email):
 
-    ).execute()
+    print(
+        "🔔 Notification:",
+        email.get(
+            "subject",
+            "No subject"
+        )
+    )
