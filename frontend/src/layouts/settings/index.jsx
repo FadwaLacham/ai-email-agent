@@ -36,7 +36,7 @@ function Settings() {
   useEffect(() => {
     api
 
-      .get("http://127.0.0.1:8000/settings")
+      .get("https://ai-email-agent-backend.fastapicloud.dev/settings")
 
       .then((response) => {
         setSettings(response.data);
@@ -57,7 +57,7 @@ function Settings() {
     api
 
       .put(
-        "http://127.0.0.1:8000/settings",
+        "https://ai-email-agent-backend.fastapicloud.dev/settings",
 
         settings
       )

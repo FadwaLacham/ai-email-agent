@@ -37,7 +37,7 @@ function Cover() {
     event.preventDefault();
 
     try {
-      const response = await api.post("http://127.0.0.1:8000/auth/register", {
+      const response = await api.post("https://ai-email-agent-backend.fastapicloud.dev/auth/register", {
         username,
         email,
         password,

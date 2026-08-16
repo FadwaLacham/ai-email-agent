@@ -21,7 +21,7 @@ function Analytics() {
 
   useEffect(() => {
     api
-      .get("http://127.0.0.1:8000/analytics")
+      .get("https://ai-email-agent-backend.fastapicloud.dev/analytics")
       .then((response) => {
         setData(response.data);
       })

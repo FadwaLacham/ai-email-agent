@@ -14,7 +14,7 @@ function RecentEmails() {
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8000/recent")
+      .get("https://ai-email-agent-backend.fastapicloud.dev/recent")
 
       .then((response) => {
         setEmails(response.data);

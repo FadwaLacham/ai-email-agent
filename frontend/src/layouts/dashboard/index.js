@@ -39,42 +39,42 @@ function Dashboard() {
 
   const fetchData = () => {
     api
-      .get("http://127.0.0.1:8000/statistics")
+      .get("https://ai-email-agent-backend.fastapicloud.dev/statistics")
       .then((response) => {
         setStats(response.data);
       })
       .catch(console.log);
 
     api
-      .get("http://127.0.0.1:8000/categories")
+      .get("https://ai-email-agent-backend.fastapicloud.dev/categories")
       .then((response) => {
         setCategories(response.data);
       })
       .catch(console.log);
 
     api
-      .get("http://127.0.0.1:8000/actions")
+      .get("https://ai-email-agent-backend.fastapicloud.dev/actions")
       .then((response) => {
         setActions(response.data);
       })
       .catch(console.log);
 
     api
-      .get("http://127.0.0.1:8000/performance")
+      .get("https://ai-email-agent-backend.fastapicloud.dev/performance")
       .then((response) => {
         setPerformance(response.data);
       })
       .catch(console.log);
 
     api
-      .get("http://127.0.0.1:8000/monitoring")
+      .get("https://ai-email-agent-backend.fastapicloud.dev/monitoring")
       .then((response) => {
         setMonitoring(response.data);
       })
       .catch(console.log);
 
     api
-      .get("http://127.0.0.1:8000/analytics")
+      .get("https://ai-email-agent-backend.fastapicloud.dev/analytics")
       .then((response) => {
         setAnalytics(response.data);
       })
@@ -159,7 +159,7 @@ function Dashboard() {
               variant="contained"
               color="success"
               onClick={() =>
-                downloadFile("http://127.0.0.1:8000/export/emails/excel", "emails.xlsx")
+                downloadFile("https://ai-email-agent-backend.fastapicloud.dev/export/emails/excel", "emails.xlsx")
               }
             >
               📄 Export Excel
@@ -169,7 +169,7 @@ function Dashboard() {
               variant="contained"
               color="info"
               sx={{ ml: 2 }}
-              onClick={() => downloadFile("http://127.0.0.1:8000/export/emails/pdf", "emails.pdf")}
+              onClick={() => downloadFile("https://ai-email-agent-backend.fastapicloud.dev/export/emails/pdf", "emails.pdf")}
             >
               📑 Export PDF
             </Button>

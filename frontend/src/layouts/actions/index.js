@@ -23,7 +23,7 @@ function Actions() {
 
   useEffect(() => {
     api
-      .get("http://127.0.0.1:8000/actions")
+      .get("https://ai-email-agent-backend.fastapicloud.dev/actions")
 
       .then((response) => {
         setActions(response.data);

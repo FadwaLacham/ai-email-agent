@@ -19,7 +19,7 @@ function Monitoring() {
 
   useEffect(() => {
     api
-      .get("http://127.0.0.1:8000/monitoring")
+      .get("https://ai-email-agent-backend.fastapicloud.dev/monitoring")
 
       .then((response) => {
         setMonitoring(response.data);

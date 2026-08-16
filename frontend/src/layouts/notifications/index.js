@@ -23,7 +23,7 @@ function Notifications() {
 
   useEffect(() => {
     api
-      .get("http://127.0.0.1:8000/notifications")
+      .get("https://ai-email-agent-backend.fastapicloud.dev/notifications")
 
       .then((response) => {
         setNotifications(response.data);

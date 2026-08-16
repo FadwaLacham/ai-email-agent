@@ -23,7 +23,7 @@ function Priority() {
 
   useEffect(() => {
     api
-      .get("http://127.0.0.1:8000/high-priority")
+      .get("https://ai-email-agent-backend.fastapicloud.dev/high-priority")
 
       .then((response) => {
         setEmails(response.data);

@@ -42,7 +42,7 @@ function Tables() {
   const [importance, setImportance] = useState("");
 
   const fetchEmails = () => {
-    let url = "http://127.0.0.1:8000/emails?";
+    let url = "https://ai-email-agent-backend.fastapicloud.dev/emails?";
 
     if (search) {
       url += `search=${search}&`;
