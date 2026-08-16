@@ -77,6 +77,9 @@ def check_emails():
 
     agent_status["status"] = "RUNNING"
 
+    processed_count = 0
+    last_action = "NONE"
+
     try:
 
         print("\n🔎 Checking Gmail...")
@@ -91,17 +94,18 @@ def check_emails():
         # Get unread emails
         # =========================
 
+        # IMPORTANT:
+        # Only one email per scan
+        # to reduce Gemini API usage.
+
         emails = get_emails(
             service,
-            max_results=5
+            max_results=1
         )
 
         print(
             f"📩 {len(emails)} emails found"
         )
-
-        processed_count = 0
-        last_action = "NONE"
 
         # =========================
         # Process emails
@@ -113,6 +117,10 @@ def check_emails():
                 "\nProcessing:",
                 email["subject"]
             )
+
+            # =========================
+            # Check if already processed
+            # =========================
 
             if email_exists(
                 email["message_id"]
@@ -128,28 +136,78 @@ def check_emails():
             # AI WORKFLOW
             # =========================
 
-            result = process_email(
-                email,
-                service
-            )
+            try:
 
-            processed_count += 1
-
-            # =========================
-            # ACTION
-            # =========================
-
-            if result:
-
-                action_result = result.get(
-                    "action",
-                    {}
+                result = process_email(
+                    email,
+                    service
                 )
 
-                last_action = action_result.get(
-                    "executed_action",
-                    "UNKNOWN"
+                processed_count += 1
+
+                # =========================
+                # ACTION
+                # =========================
+
+                if result:
+
+                    action_result = result.get(
+                        "action",
+                        {}
+                    )
+
+                    last_action = action_result.get(
+                        "executed_action",
+                        "UNKNOWN"
+                    )
+
+                print(
+                    "✅ Workflow completed"
                 )
+
+            except Exception as e:
+
+                error_message = str(e)
+
+                # =========================
+                # GEMINI QUOTA ERROR
+                # =========================
+
+                if (
+                    "429" in error_message
+                    or "RESOURCE_EXHAUSTED" in error_message
+                ):
+
+                    print(
+                        "⚠️ Gemini quota exceeded."
+                    )
+
+                    print(
+                        "⏩ Email skipped for this scan."
+                    )
+
+                    agent_status["errors"] += 1
+
+                    last_action = "GEMINI_QUOTA"
+
+                    # Do NOT crash the scheduler
+                    continue
+
+                # =========================
+                # OTHER EMAIL ERROR
+                # =========================
+
+                print(
+                    "❌ Error processing email:",
+                    e
+                )
+
+                agent_status["errors"] += 1
+
+                last_action = "ERROR"
+
+                # Continue instead of crashing scheduler
+                continue
 
         # =========================
         # PROCESSING TIME
@@ -201,14 +259,23 @@ def check_emails():
             "✅ Email scan completed"
         )
 
+        # =========================
+        # RETURN RESULT
+        # =========================
+
         return {
             "success": True,
             "processed_emails": processed_count,
             "last_action": last_action,
-            "processing_time": f"{processing_time}s"
+            "processing_time": f"{processing_time}s",
+            "errors": agent_status["errors"]
         }
 
     except Exception as e:
+
+        # =========================
+        # GLOBAL ERROR
+        # =========================
 
         print(
             "❌ Agent Error:",
@@ -219,19 +286,28 @@ def check_emails():
 
         agent_status["errors"] += 1
 
+        processing_time = round(
+            time.time() - start_time,
+            2
+        )
+
         save_agent_log(
             status="ERROR",
-            processed_emails=0,
+            processed_emails=processed_count,
             last_action="ERROR",
-            processing_time="0s"
+            processing_time=f"{processing_time}s"
         )
+
+        # Keep the error visible
+        # to the scheduler endpoint
 
         raise
 
     finally:
 
         print(
-            f"📊 Scheduler status: {agent_status['status']}"
+            f"📊 Scheduler status: "
+            f"{agent_status['status']}"
         )
 
 
