@@ -1,6 +1,10 @@
 import os
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import (
+    APIRouter,
+    Header,
+    HTTPException
+)
 
 from app.scheduler.email_scheduler import (
     check_emails,
@@ -47,11 +51,14 @@ def run_scheduler(
 
     except Exception as e:
 
-        print("❌ Scheduler error:", e)
+        print(
+            "❌ Scheduler error:",
+            repr(e)
+        )
 
         raise HTTPException(
             status_code=500,
-            detail="Scheduler execution failed"
+            detail=str(e)
         )
 
 
