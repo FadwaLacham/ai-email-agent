@@ -557,3 +557,12 @@ Morocco
 # 📄 License
 
 This project is licensed under the MIT License.
+
+## Credits
+
+The frontend dashboard is based on Material Dashboard 2 React
+by Creative Tim.
+
+Original license: MIT License
+Copyright (c) 2013-2021 Creative Tim
+https://www.creative-tim.com

@@ -1,5 +1,4 @@
 
-"""
 import os
 
 from dotenv import load_dotenv
@@ -22,6 +21,7 @@ def ask_llm(prompt):
     )
 
     return response.text
+
 
 """
 
@@ -61,3 +61,5 @@ def ask_llm(prompt):
     return response.choices[0].message.content
 
 
+
+"""
