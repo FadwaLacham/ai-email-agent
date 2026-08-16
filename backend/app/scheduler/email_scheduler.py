@@ -53,6 +53,15 @@ def save_agent_log(
         db.add(log)
         db.commit()
 
+    except Exception as e:
+
+        db.rollback()
+
+        print(
+            "❌ Error saving AgentLog:",
+            e
+        )
+
     finally:
 
         db.close()
@@ -105,7 +114,6 @@ def check_emails():
                 email["subject"]
             )
 
-            # Already processed?
             if email_exists(
                 email["message_id"]
             ):
@@ -117,7 +125,7 @@ def check_emails():
                 continue
 
             # =========================
-            # AI Workflow
+            # AI WORKFLOW
             # =========================
 
             result = process_email(
@@ -128,7 +136,7 @@ def check_emails():
             processed_count += 1
 
             # =========================
-            # Get action
+            # ACTION
             # =========================
 
             if result:
@@ -144,7 +152,7 @@ def check_emails():
                 )
 
         # =========================
-        # Processing time
+        # PROCESSING TIME
         # =========================
 
         processing_time = round(
@@ -153,7 +161,7 @@ def check_emails():
         )
 
         # =========================
-        # Update status
+        # UPDATE STATUS
         # =========================
 
         agent_status["status"] = "COMPLETED"
@@ -175,7 +183,7 @@ def check_emails():
         )
 
         # =========================
-        # Save monitoring log
+        # SAVE LOG
         # =========================
 
         save_agent_log(
@@ -208,6 +216,7 @@ def check_emails():
         )
 
         agent_status["status"] = "ERROR"
+
         agent_status["errors"] += 1
 
         save_agent_log(
@@ -217,22 +226,26 @@ def check_emails():
             processing_time="0s"
         )
 
-        # Très important :
-        # on retourne l'erreur au lieu de la cacher
-
         raise
 
     finally:
 
-        if agent_status["status"] == "RUNNING":
-
-            agent_status["status"] = "STOPPED"
+        print(
+            f"📊 Scheduler status: {agent_status['status']}"
+        )
 
 
 # ==============================
-# GET CURRENT STATUS
+# GET STATUS
 # ==============================
 
 def get_agent_status():
 
-    return agent_status
+    return {
+        "status": agent_status["status"],
+        "last_scan": agent_status["last_scan"],
+        "processed_emails": agent_status["processed_emails"],
+        "last_action": agent_status["last_action"],
+        "processing_time": agent_status["processing_time"],
+        "errors": agent_status["errors"]
+    }
