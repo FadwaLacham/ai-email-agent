@@ -325,3 +325,26 @@ def get_agent_status():
         "processing_time": agent_status["processing_time"],
         "errors": agent_status["errors"]
     }
+
+def run_scheduler(interval=300):
+    """
+    Run the email agent automatically every `interval` seconds.
+    Default: every 5 minutes.
+    """
+
+    print("🚀 Email Agent scheduler started")
+    print(f"⏱️ Checking Gmail every {interval} seconds")
+
+    while True:
+
+        try:
+            check_emails()
+
+        except Exception as e:
+            print("❌ Scheduler error:", e)
+
+        print(
+            f"💤 Next Gmail check in {interval} seconds..."
+        )
+
+        time.sleep(interval)
