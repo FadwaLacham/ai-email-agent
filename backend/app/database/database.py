@@ -1,17 +1,34 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 
-DATABASE_URL = "sqlite:///./emails.db"
+# =========================
+# Database URL
+# =========================
 
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL environment variable is not configured"
+    )
+
+
+# =========================
+# PostgreSQL Engine
+# =========================
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={
-        "check_same_thread": False
-    }
+    pool_pre_ping=True
 )
 
+
+# =========================
+# Session
+# =========================
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -20,5 +37,8 @@ SessionLocal = sessionmaker(
 )
 
 
+# =========================
+# Base
+# =========================
+
 Base = declarative_base()
-Base.metadata.create_all(bind=engine)
