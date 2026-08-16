@@ -26,7 +26,7 @@ app = FastAPI(
 
 
 # =========================
-# CORS Configuration
+# CORS
 # =========================
 
 app.add_middleware(
@@ -47,7 +47,7 @@ app.add_middleware(
 
 
 # =========================
-# Authentication Routes
+# Authentication
 # =========================
 
 app.include_router(
@@ -58,14 +58,14 @@ app.include_router(
 
 
 # =========================
-# API Routes
+# API
 # =========================
 
 app.include_router(router)
 
 
 # =========================
-# Scheduler Routes
+# Scheduler
 # =========================
 
 app.include_router(
