@@ -12,24 +12,51 @@ from app.scheduler.email_scheduler import (
 )
 
 
+# =========================
+# ROUTER
+# =========================
+
 router = APIRouter(
     prefix="/scheduler",
     tags=["Scheduler"]
 )
 
 
+# =========================
+# RUN SCHEDULER
+# =========================
+
 @router.post("/run")
 def run_scheduler(
-    x_scheduler_secret: str | None = Header(default=None)
+    x_scheduler_secret: str | None = Header(
+        default=None
+    )
 ):
 
-    expected_secret = os.getenv("SCHEDULER_SECRET")
+    # =========================
+    # Get secret from environment
+    # =========================
+
+    expected_secret = os.getenv(
+        "SCHEDULER_SECRET"
+    )
 
     if not expected_secret:
 
         raise HTTPException(
             status_code=500,
             detail="SCHEDULER_SECRET is not configured"
+        )
+
+    # =========================
+    # Validate secret
+    # =========================
+
+    if not x_scheduler_secret:
+
+        raise HTTPException(
+            status_code=401,
+            detail="Scheduler secret is required"
         )
 
     if x_scheduler_secret != expected_secret:
@@ -39,9 +66,17 @@ def run_scheduler(
             detail="Invalid scheduler secret"
         )
 
+    # =========================
+    # Run email agent
+    # =========================
+
     try:
 
+        print("🚀 Scheduler triggered")
+
         result = check_emails()
+
+        print("✅ Scheduler completed")
 
         return {
             "success": True,
@@ -61,6 +96,10 @@ def run_scheduler(
             detail=str(e)
         )
 
+
+# =========================
+# SCHEDULER STATUS
+# =========================
 
 @router.get("/status")
 def scheduler_status():
